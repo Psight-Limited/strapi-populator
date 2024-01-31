@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, ClassVar, Dict, List, Optional
 
 import aiohttp
 from pydantic import BaseModel, ValidationError
@@ -8,24 +8,53 @@ from strapi_object import BASE_URL, StrapiObject
 
 
 class Author(StrapiObject, BaseModel):
+    id: int
     name: str
+    _uri: ClassVar[str] = "/api/authors"
+
+    def __init__(self, **data):
+        super().__init__(**data)
+
+
+class Course(StrapiObject, BaseModel):
+    id: int
+    title: str
+    course_categories: Optional[List[int]] = None
+    _uri: ClassVar[str] = "/api/courses"
+
+    def __init__(self, **data):
+        super().__init__(**data)
 
 
 class CourseCategory(StrapiObject, BaseModel):
+    id: int
     name: str
     course: Optional[int] = None
+    _uri: ClassVar[str] = "/api/course-categories"
+
+    def __init__(self, **data):
+        super().__init__(**data)
 
 
 class CourseSubcategory(StrapiObject, BaseModel):
+    id: int
     name: str
     course_category: Optional[int] = None
     post_youtube_videos: Optional[List[int]] = None
     post_course_videos: Optional[List[int]] = None
+    _uri: ClassVar[str] = "/api/course-subcategories"
+
+    def __init__(self, **data):
+        super().__init__(**data)
 
 
 class LiveTestYourself(StrapiObject, BaseModel):
+    id: int
     prod_test_yourself: Optional[int] = None
     staging_test_yourself: Optional[int] = None
+
+    def __init__(self, **data):
+        super().__init__(**data)
 
 
 class Media(BaseModel):
@@ -47,6 +76,12 @@ class Media(BaseModel):
     createdAt: str
     updatedAt: str
 
+    def __init__(self, **data):
+        super().__init__(**data)
+
+    def serialize_to_post(self):
+        return self.__dict__
+
     @classmethod
     def pre_process_field(cls, field: Any) -> "Media":
         if not isinstance(field, dict):
@@ -67,7 +102,7 @@ class Media(BaseModel):
             raise ValueError(f"Invalid media data: {e.errors()}")
 
     @classmethod
-    async def upload_file(cls, file_path):
+    async def upload_file(cls, file_path: str):
         assert os.path.isfile(file_path), f"{file_path} does not exist."
         async with aiohttp.ClientSession() as session:
             with open(file_path, "rb") as f:
@@ -81,14 +116,18 @@ class Media(BaseModel):
 
 
 class PostBlog(StrapiObject, BaseModel):
+    id: int
     title: str
     blog_text: str
     thumbnail: Optional[List[Media]] = None
     seo: Optional[int] = None
 
+    def __init__(self, **data):
+        super().__init__(**data)
+
 
 class PostCourseVideo(StrapiObject, BaseModel):
-    id: int
+    id: Optional[int]
     title: str
     author: Optional[int] = None
     season: Optional[int] = None
@@ -98,12 +137,14 @@ class PostCourseVideo(StrapiObject, BaseModel):
     audio_file: Optional[Media] = None
     thumbnail: Optional[Media] = None
     transcript: Optional[str] = None
+    _uri: ClassVar[str] = "/api/post-course-videos"
 
     def __init__(self, **data):
         super().__init__(**data)
 
 
 class PostYoutubeVideo(StrapiObject, BaseModel):
+    id: int
     title: str
     author: Optional[int] = None
     youtube_channel: Optional[int] = None
@@ -119,39 +160,57 @@ class PostYoutubeVideo(StrapiObject, BaseModel):
     thumbnail: Optional[Media] = None
     transcript: Optional[str] = None
 
+    def __init__(self, **data):
+        super().__init__(**data)
+
 
 class Season(StrapiObject, BaseModel):
+    id: int
     display: str
     season_number: int
     season_part: Optional[int] = None
     post_youtube_videos: Optional[List[int]] = None
     post_course_videos: Optional[List[int]] = None
 
+    def __init__(self, **data):
+        super().__init__(**data)
+
 
 class TestYourself(StrapiObject, BaseModel):
+    id: int
     internal_alias: str
     questions: Optional[str] = None
 
+    def __init__(self, **data):
+        super().__init__(**data)
+
 
 class TestYourselfQuestion(StrapiObject, BaseModel):
+    id: int
     choices: Optional[List[int]] = None
     name: str
     question_title: Optional[str] = None
     conditional: bool
 
+    def __init__(self, **data):
+        super().__init__(**data)
+
 
 class Vector(StrapiObject, BaseModel):
+    id: int
     name: str
     display: Optional[str] = None
     description: Optional[str] = None
     icon: Optional[Media] = None
 
+    def __init__(self, **data):
+        super().__init__(**data)
+
 
 class YoutubeChannel(StrapiObject, BaseModel):
+    id: int
     name: str
     post_youtube_videos: Optional[List[int]] = None
 
-
-class Course(StrapiObject, BaseModel):
-    title: str
-    course_categories: Optional[List[int]] = None
+    def __init__(self, **data):
+        super().__init__(**data)

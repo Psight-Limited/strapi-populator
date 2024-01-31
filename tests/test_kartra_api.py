@@ -7,6 +7,7 @@ from vimeo_download import download_video
 class TestKartraRoutes(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.client = kartra_api.KartraClient()
+        self.post_id = 1191
 
     async def test_get_users_memberships(self):
         r = await self.client.get_users_memberships("noahlykins@gmail.com")
@@ -21,7 +22,7 @@ class TestKartraRoutes(unittest.IsolatedAsyncioTestCase):
             self.assertIsInstance(i, str)
 
     async def test_get_post_info(self):
-        r = await kartra_api.KartraPost.fetch_post_info(1191)
+        r = await kartra_api.KartraPost.fetch_post_info(self.post_id)
         assert isinstance(r, kartra_api.KartraPost)
         assert r.post_name is not None
         assert r.subcategory_name is not None
@@ -30,5 +31,5 @@ class TestKartraRoutes(unittest.IsolatedAsyncioTestCase):
         download_video(r.video_id, "./videos/test.mp4")
 
     async def test_get_post_info_failure(self):
-        r = await kartra_api.KartraPost.fetch_post_info(999999)
+        r = await kartra_api.KartraPost.fetch_post_info(-999999)
         self.assertIs(r, None)
