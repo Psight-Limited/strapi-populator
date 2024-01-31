@@ -1,7 +1,7 @@
-import json
 import unittest
 
 import kartra_api
+from vimeo_download import download_video
 
 
 class TestKartraRoutes(unittest.IsolatedAsyncioTestCase):
@@ -22,8 +22,13 @@ class TestKartraRoutes(unittest.IsolatedAsyncioTestCase):
 
     async def test_get_post_info(self):
         r = await kartra_api.KartraPost.fetch_post_info(1191)
-        self.assertIsInstance(r, kartra_api.KartraPost)
-        self.assertIsNot(r.post_name, None)
-        self.assertIsNot(r.subcategory_name, None)
-        self.assertIsNot(r.category_name, None)
-        self.assertIsNot(r.video_id, None)
+        assert isinstance(r, kartra_api.KartraPost)
+        assert r.post_name is not None
+        assert r.subcategory_name is not None
+        assert r.category_name is not None
+        assert r.video_id is not None
+        download_video(r.video_id, "./videos/test.mp4")
+
+    async def test_get_post_info_failure(self):
+        r = await kartra_api.KartraPost.fetch_post_info(999999)
+        self.assertIs(r, None)

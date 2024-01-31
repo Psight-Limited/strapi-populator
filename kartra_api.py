@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Any
+from typing import Any, Optional
 
 import aiohttp
 from aiolimiter import AsyncLimiter
@@ -59,27 +59,46 @@ def load_cookies_from_json(file_path):
     return cookies
 
 
-def fetch_post_html(id, cookie_file="cookie.json"):
-    url = f"https://csjoseph.kartra.com/portal/joS402GfMsrK/post/{id}"
+def fetch_post_html(id, membership_id="joS402GfMsrK"):
+    url = f"https://csjoseph.kartra.com/portal/{membership_id}/post/{id}"
     options = Options()
-    options.headless = True
     service = Service(GeckoDriverManager().install())
     with webdriver.Firefox(options=options, service=service) as driver:
         driver.get(url)
-        cookies = load_cookies_from_json(cookie_file)
+        cookies = load_cookies_from_json("cookie.json")
         for name, value in cookies.items():
             cookie_dict = {"name": name, "value": value}
             driver.add_cookie(cookie_dict)
         driver.get(url)
+        is_404 = driver.execute_script(
+            "return document.title.includes('404')"
+            " || document.body.innerText.includes('404 Not Found');"
+        )
+        if is_404:
+            return None
         return driver.page_source
+
+
+class SoupMonad:
+    def __init__(self, value):
+        self.value = value
+
+    def find(self, *args, **kwargs):
+        if isinstance(self.value, Tag):
+            self.value = self.value.find(*args, **kwargs)
+        return self
+
+    def get_text(self, *args, **kwargs):
+        if isinstance(self.value, Tag):
+            return self.value.get_text(*args, **kwargs)
 
 
 class KartraPost(BaseModel):
     id: int
-    post_name: str
-    subcategory_name: str
-    category_name: str
-    body: Tag
+    post_name: Optional[str]
+    subcategory_name: Optional[str]
+    category_name: Optional[str]
+    body: Optional[Tag]
 
     class Config:
         arbitrary_types_allowed = True
@@ -92,37 +111,49 @@ class KartraPost(BaseModel):
 
     @property
     def video_id(self):
+        if self.body is None:
+            return
         vimeo_div = self.body.find("div", {"data-video_source": "vimeo"})
-        if not vimeo_div:
+        if not isinstance(vimeo_div, Tag):
             return None
-        return vimeo_div.get("data-video_source_id")
+        res = vimeo_div.get("data-video_source_id")
+        assert isinstance(res, str)
+        return res
 
     @classmethod
     async def fetch_post_info(cls, id):
-        soup = BeautifulSoup(fetch_post_html(id), "html.parser")
+        html = fetch_post_html(id)
+        if html is None:
+            return None
+        soup = BeautifulSoup(html, "html.parser")
+        post_name = (
+            SoupMonad(soup.find("div", class_="panel panel-kartra"))
+            .find("div", class_="panel-heading")
+            .find("h1")
+            .get_text(strip=True)
+        )
+        subcategory_name = (
+            SoupMonad(soup.find("div", class_="panel panel-blank menu_box"))
+            .find("div", class_="panel-heading")
+            .find("h2")
+            .get_text(strip=True)
+        )
+        category_name = (
+            SoupMonad(soup.find("ul", class_="nav list-unstyled"))
+            .find("li", class_="dropdown active")
+            .find("a")
+            .get_text(strip=True)
+        )
+        body = (
+            SoupMonad(soup.find("div", class_="panel panel-kartra"))
+            .find("div", class_="panel-body")
+            .value
+        )
+        assert isinstance(body, Tag) or body is None
         return cls(
             id=id,
-            post_name=(
-                soup.find("div", class_="panel panel-kartra")
-                .find("div", class_="panel-heading")
-                .find("h1")
-                .get_text(strip=True)
-            ),
-            subcategory_name=(
-                soup.find("div", class_="panel panel-blank menu_box")
-                .find("div", class_="panel-heading")
-                .find("h2")
-                .get_text(strip=True)
-            ),
-            category_name=(
-                soup.find("ul", class_="nav list-unstyled")
-                .find("li", class_="dropdown active")
-                .find("a")
-                .get_text(strip=True)
-            ),
-            body=(
-                soup.find("div", class_="panel panel-kartra").find(
-                    "div", class_="panel-body"
-                )
-            ),
+            post_name=post_name,
+            subcategory_name=subcategory_name,
+            category_name=category_name,
+            body=body,
         )

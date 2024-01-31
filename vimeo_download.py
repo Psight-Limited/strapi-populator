@@ -49,8 +49,10 @@ def download_video(video_id, download_path):
     video_url = get_video_download_link(video_id)
     if video_url is None:
         return None
-    print(f"Downloading video from {video_url} to {download_path}")
     os.makedirs(os.path.dirname(download_path), exist_ok=True)
+    _, ext = os.path.splitext(video_url)
+    assert ext, "Needs extension"
+    print(f"Downloading video from {video_url} to {download_path}")
     if download_from_url(video_url, download_path):
         return download_path
     else:
