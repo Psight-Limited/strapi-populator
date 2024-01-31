@@ -1,9 +1,10 @@
+import os
 import urllib.parse
 from typing import Any, Optional, Type, get_args, get_origin, get_type_hints
 
 import aiohttp
 
-BASE_URL = "http://localhost:1337"
+BASE_URL = os.getenv("STRAPI_URL", "http://localhost:1337")
 
 
 def pre_process_field(field: Any, expected_type: Type) -> Any:
@@ -59,6 +60,10 @@ class StrapiObject:
     async def get(cls, **kwargs):
         filters = {}
         for key, value in kwargs.items():
+            if hasattr(value, "serialize_to_filter"):
+                key, value = value.serialize_to_filter()
+                filters[key] = value
+                continue
             if (
                 hasattr(value, "serialize_to_post")
                 and value != value.serialize_to_post()

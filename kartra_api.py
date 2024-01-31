@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from typing import Any, Optional
 
 import aiohttp
@@ -9,7 +10,8 @@ from pydantic import BaseModel, validator
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.firefox.service import Service
-from webdriver_manager.firefox import GeckoDriverManager
+
+KARTRA_URL = "https://csjoseph.kartra.com/portal"
 
 
 class KartraClient:
@@ -59,10 +61,10 @@ def load_cookies_from_json(file_path):
     return cookies
 
 
-def fetch_post_html(id, course_id):
-    url = f"https://csjoseph.kartra.com/portal/{course_id}/post/{id}"
+def fetch_html(url):
     options = Options()
-    service = Service(GeckoDriverManager().install())
+    service = Service(executable_path="/usr/bin/geckodriver")
+
     with webdriver.Firefox(options=options, service=service) as driver:
         driver.get(url)
         cookies = load_cookies_from_json("cookie.json")
@@ -77,6 +79,40 @@ def fetch_post_html(id, course_id):
         if is_404:
             return None
         return driver.page_source
+
+
+def fetch_subcategory_urls(html: str, course_id):
+    matches = re.findall(
+        re.compile(rf"{KARTRA_URL}/{course_id}/subcategory/\d+"),
+        html,
+    )
+    return matches
+
+
+def has_data_post_id_but_not_empty(tag):
+    return tag.has_attr("data-post_id") and tag["data-post_id"].strip() != ""
+
+
+def fetch_post_urls(html: str, course_id):
+    soup = BeautifulSoup(html, "html.parser")
+    elements_with_post_id = soup.find_all(has_data_post_id_but_not_empty)
+    post_ids = [int(element["data-post_id"]) for element in elements_with_post_id]
+    return post_ids
+
+
+def fetch_all_post_ids(course_id):
+    url = f"{KARTRA_URL}/{course_id}/index"
+    html = fetch_html(url)
+    assert isinstance(html, str)
+    final = []
+    final.extend(fetch_post_urls(html, course_id))
+    for subcat in fetch_subcategory_urls(html, course_id):
+        subcat_html = fetch_html(subcat)
+        if subcat_html is None:
+            continue
+        final.extend(fetch_post_urls(subcat_html, course_id))
+    final = list(set(final))
+    return final
 
 
 class SoupMonad:
@@ -122,7 +158,9 @@ class KartraPost(BaseModel):
 
     @classmethod
     async def fetch_post_info(cls, id, course_id):
-        html = fetch_post_html(id, course_id)
+        url = f"{KARTRA_URL}/{course_id}/post/{id}"
+        html = fetch_html(url)
+
         if html is None:
             return None
         soup = BeautifulSoup(html, "html.parser")

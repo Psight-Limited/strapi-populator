@@ -47,6 +47,9 @@ class CourseSubcategory(StrapiObject, BaseModel):
     def __init__(self, **data):
         super().__init__(**data)
 
+    def serialize_to_filter(self):
+        return "filters[course_subcategory][id][$eq]", self.id
+
 
 class LiveTestYourself(StrapiObject, BaseModel):
     id: int
@@ -105,7 +108,9 @@ class Media(BaseModel):
     async def upload_file(cls, file_path: str):
         if not os.path.isfile(file_path):
             return None
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(
+            timeout=aiohttp.ClientTimeout(60 * 60),
+        ) as session:
             with open(file_path, "rb") as f:
                 async with session.post(
                     url=f"{BASE_URL}/api/upload",
