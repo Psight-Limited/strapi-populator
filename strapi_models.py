@@ -103,7 +103,8 @@ class Media(BaseModel):
 
     @classmethod
     async def upload_file(cls, file_path: str):
-        assert os.path.isfile(file_path), f"{file_path} does not exist."
+        if not os.path.isfile(file_path):
+            return None
         async with aiohttp.ClientSession() as session:
             with open(file_path, "rb") as f:
                 async with session.post(

@@ -59,8 +59,8 @@ def load_cookies_from_json(file_path):
     return cookies
 
 
-def fetch_post_html(id, membership_id="joS402GfMsrK"):
-    url = f"https://csjoseph.kartra.com/portal/{membership_id}/post/{id}"
+def fetch_post_html(id, course_id):
+    url = f"https://csjoseph.kartra.com/portal/{course_id}/post/{id}"
     options = Options()
     service = Service(GeckoDriverManager().install())
     with webdriver.Firefox(options=options, service=service) as driver:
@@ -121,8 +121,8 @@ class KartraPost(BaseModel):
         return res
 
     @classmethod
-    async def fetch_post_info(cls, id):
-        html = fetch_post_html(id)
+    async def fetch_post_info(cls, id, course_id):
+        html = fetch_post_html(id, course_id)
         if html is None:
             return None
         soup = BeautifulSoup(html, "html.parser")

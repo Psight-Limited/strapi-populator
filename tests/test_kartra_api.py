@@ -1,3 +1,5 @@
+import os
+import shutil
 import unittest
 
 import kartra_api
@@ -28,7 +30,9 @@ class TestKartraRoutes(unittest.IsolatedAsyncioTestCase):
         assert r.subcategory_name is not None
         assert r.category_name is not None
         assert r.video_id is not None
-        download_video(r.video_id, "./videos/test.mp4")
+        video_path = "./videos/test.mp4"
+        download_video(r.video_id, video_path)
+        shutil.rmtree(os.path.dirname(video_path))
 
     async def test_get_post_info_failure(self):
         r = await kartra_api.KartraPost.fetch_post_info(-999999)
