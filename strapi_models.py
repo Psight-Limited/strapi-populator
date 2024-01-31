@@ -68,18 +68,16 @@ class Media(BaseModel):
 
     @classmethod
     async def upload_file(cls, file_path):
-        if not os.path.isfile(file_path):
-            print(f"The file {file_path} does not exist.")
-            return
+        assert os.path.isfile(file_path), f"{file_path} does not exist."
         async with aiohttp.ClientSession() as session:
             with open(file_path, "rb") as f:
-                response = await session.post(
+                async with session.post(
                     url=f"{BASE_URL}/api/upload",
                     data={"files": f},
-                )
-        assert response.status == 200
-        response_data = (await response.json())[0]
-        return cls(**response_data)
+                ) as response:
+                    assert response.status == 200
+                    response_data = (await response.json())[0]
+                    return cls(**response_data)
 
 
 class PostBlog(StrapiObject, BaseModel):

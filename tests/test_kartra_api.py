@@ -22,5 +22,8 @@ class TestKartraRoutes(unittest.IsolatedAsyncioTestCase):
 
     async def test_get_post_info(self):
         r = await kartra_api.KartraPost.fetch_post_info(1191)
-        __import__("pprint").pprint(r.__dict__)
         self.assertIsInstance(r, kartra_api.KartraPost)
+        self.assertIsNot(r.post_name, None)
+        self.assertIsNot(r.subcategory_name, None)
+        self.assertIsNot(r.category_name, None)
+        self.assertIsNot(r.video_id, None)

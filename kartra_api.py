@@ -1,10 +1,11 @@
 import json
 import os
+from typing import Any
 
 import aiohttp
 from aiolimiter import AsyncLimiter
 from bs4 import BeautifulSoup, Tag
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, validator
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.firefox.service import Service
@@ -78,7 +79,23 @@ class KartraPost(BaseModel):
     post_name: str
     subcategory_name: str
     category_name: str
-    body: str
+    body: Tag
+
+    class Config:
+        arbitrary_types_allowed = True
+
+    @validator("body", pre=True, allow_reuse=True)
+    def validate_body(cls, v: Any):
+        if not isinstance(v, Tag):
+            raise ValueError("body must be a BeautifulSoup Tag object")
+        return v
+
+    @property
+    def video_id(self):
+        vimeo_div = self.body.find("div", {"data-video_source": "vimeo"})
+        if not vimeo_div:
+            return None
+        return vimeo_div.get("data-video_source_id")
 
     @classmethod
     async def fetch_post_info(cls, id):
@@ -104,8 +121,8 @@ class KartraPost(BaseModel):
                 .get_text(strip=True)
             ),
             body=(
-                soup.find("div", class_="panel panel-kartra")
-                .find("div", class_="panel-body")
-                .decode_contents()
+                soup.find("div", class_="panel panel-kartra").find(
+                    "div", class_="panel-body"
+                )
             ),
         )
