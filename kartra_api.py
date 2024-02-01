@@ -61,24 +61,25 @@ def load_cookies_from_json(file_path):
     return cookies
 
 
-def fetch_html(url):
-    options = Options()
-    service = Service(executable_path="/usr/bin/geckodriver")
+options = Options()
+service = Service(executable_path="/usr/bin/geckodriver")
+driver = webdriver.Firefox(options=options, service=service)
 
-    with webdriver.Firefox(options=options, service=service) as driver:
-        driver.get(url)
-        cookies = load_cookies_from_json("cookie.json")
-        for name, value in cookies.items():
-            cookie_dict = {"name": name, "value": value}
-            driver.add_cookie(cookie_dict)
-        driver.get(url)
-        is_404 = driver.execute_script(
-            "return document.title.includes('404')"
-            " || document.body.innerText.includes('404 Not Found');"
-        )
-        if is_404:
-            return None
-        return driver.page_source
+
+def fetch_html(url):
+    driver.get(url)
+    cookies = load_cookies_from_json("cookie.json")
+    for name, value in cookies.items():
+        cookie_dict = {"name": name, "value": value}
+        driver.add_cookie(cookie_dict)
+    driver.get(url)
+    is_404 = driver.execute_script(
+        "return document.title.includes('404')"
+        " || document.body.innerText.includes('404 Not Found');"
+    )
+    if is_404:
+        return None
+    return driver.page_source
 
 
 def fetch_subcategory_urls(html: str, course_id):
@@ -86,7 +87,7 @@ def fetch_subcategory_urls(html: str, course_id):
         re.compile(rf"{KARTRA_URL}/{course_id}/subcategory/\d+"),
         html,
     )
-    return matches
+    return list(set(matches))
 
 
 def has_data_post_id_but_not_empty(tag):
