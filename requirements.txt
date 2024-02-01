@@ -1,11 +1,10 @@
 aiohttp==3.9.1
+aiolimiter==1.1.0
+beautifulsoup4==4.12.3
 moviepy==1.0.3
-pandas==1.5.3
 pydantic==2.6.0
 python-dotenv==1.0.1
 PyVimeo==1.1.0
 Requests==2.31.0
+selenium==4.17.2
 tqdm==4.66.1
-beautifulsoup4==4.12.3
-selenium
-webdriver-manager

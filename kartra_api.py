@@ -1,9 +1,12 @@
 import json
 import os
 import re
+import subprocess
+import tarfile
 from typing import Any, Optional
 
 import aiohttp
+import requests
 from aiolimiter import AsyncLimiter
 from bs4 import BeautifulSoup, Tag
 from pydantic import BaseModel, validator
@@ -54,21 +57,33 @@ class KartraClient:
         return response["account_tags"]
 
 
-def load_cookies_from_json(file_path):
-    with open(file_path, "r") as file:
-        data = json.load(file)
-        cookies = data.get("Request Cookies", {})
-    return cookies
+def load_cookies_from_env():
+    return json.loads(
+        os.getenv("REQUEST_COOKIES", "{}"),
+    )
+
+
+def setup_geckodriver(version="0.34.0", platform="linux64"):
+    geckodriver_filename = "geckodriver"
+    geckodriver_tar = f"geckodriver-v{version}-{platform}.tar.gz"
+    if not os.path.isfile(geckodriver_filename):
+        url = f"https://github.com/mozilla/geckodriver/releases/download/v{version}/{geckodriver_tar}"
+        subprocess.run(["wget", url])
+        with tarfile.open(geckodriver_tar, "r:gz") as tar:
+            tar.extractall()
+        os.chmod(geckodriver_filename, 0o755)
+        os.remove(geckodriver_tar)
+    return os.path.join(os.getcwd(), geckodriver_filename)
 
 
 options = Options()
-service = Service(executable_path="/usr/bin/geckodriver")
+service = Service(executable_path=setup_geckodriver())
 driver = webdriver.Firefox(options=options, service=service)
 
 
 def fetch_html(url):
     driver.get(url)
-    cookies = load_cookies_from_json("cookie.json")
+    cookies = load_cookies_from_env()
     for name, value in cookies.items():
         cookie_dict = {"name": name, "value": value}
         driver.add_cookie(cookie_dict)
