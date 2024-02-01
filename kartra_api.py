@@ -6,7 +6,6 @@ import tarfile
 from typing import Any, Optional
 
 import aiohttp
-import requests
 from aiolimiter import AsyncLimiter
 from bs4 import BeautifulSoup, Tag
 from pydantic import BaseModel, validator
