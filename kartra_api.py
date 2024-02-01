@@ -8,9 +8,9 @@ from aiolimiter import AsyncLimiter
 from bs4 import BeautifulSoup, Tag
 from pydantic import BaseModel, validator
 from selenium import webdriver
-from selenium.webdriver.firefox.options import Options
-from selenium.webdriver.firefox.service import Service
-from webdriver_manager.firefox import GeckoDriverManager
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 
 KARTRA_URL = "https://csjoseph.kartra.com/portal"
 
@@ -55,26 +55,18 @@ class KartraClient:
         return response["account_tags"]
 
 
-def load_cookies_from_env():
-    return json.loads(
-        os.getenv("REQUEST_COOKIES", "{}"),
-    )
+cookies = json.loads(os.getenv("REQUEST_COOKIES", "{}"))
 
 
-cookies = load_cookies_from_env()
-print(cookies)
 print("creating driver")
 options = Options()
 options.add_argument("--headless")
-options.add_argument("--headless=new")
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
-options.add_argument("start-maximized")
-options.add_argument("disable-infobars")
 options.add_argument("--disable-extensions")
-driver = webdriver.Firefox(
+driver = webdriver.Chrome(
     options=options,
-    service=Service(GeckoDriverManager().install()),
+    service=Service(ChromeDriverManager().install()),
 )
 print("created")
 
