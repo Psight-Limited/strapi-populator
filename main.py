@@ -50,11 +50,13 @@ async def kartra_to_strapi(post_id, course_id):
 
 
 async def main():
+    print("starting")
     course_ids = [
         "joS402GfMsrK",  # EBT
         "IvMmhsbBLqYf",  # Journeyman
     ]
     for course_id in course_ids:
+        print(f"starting course {course_id}")
         for post_id in fetch_all_post_ids(course_id):
             await kartra_to_strapi(post_id, course_id)
 

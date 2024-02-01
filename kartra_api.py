@@ -9,7 +9,6 @@ from bs4 import BeautifulSoup, Tag
 from pydantic import BaseModel, validator
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
-from selenium.webdriver.firefox.service import Service
 
 KARTRA_URL = "https://csjoseph.kartra.com/portal"
 
@@ -65,6 +64,7 @@ print(cookies)
 print("creating driver")
 options = Options()
 options.add_argument("--headless")
+options.add_argument("--no-sandbox")
 driver = webdriver.Firefox(options=options)
 print("created")
 
