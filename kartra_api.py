@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup, Tag
 from pydantic import BaseModel, validator
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.firefox.service import Service
 
 KARTRA_URL = "https://csjoseph.kartra.com/portal"
 
@@ -61,6 +62,8 @@ def load_cookies_from_env():
 
 options = Options()
 options.add_argument("--headless=new")
+options.binary_location = "/usr/bin/firefox"
+service = Service(executable_path="/usr/local/bin/geckodriver")
 driver = webdriver.Firefox(options=options)
 
 
