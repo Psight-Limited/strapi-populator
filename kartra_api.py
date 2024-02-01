@@ -64,7 +64,7 @@ options = Options()
 options.add_argument("--headless=new")
 options.binary_location = "/usr/bin/firefox"
 service = Service(executable_path="/usr/local/bin/geckodriver")
-driver = webdriver.Firefox(options=options)
+driver = webdriver.Firefox(options=options, service=service)
 
 
 def fetch_html(url):
