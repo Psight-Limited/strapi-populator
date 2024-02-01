@@ -76,6 +76,7 @@ def setup_geckodriver(version="0.34.0", platform="linux64"):
 
 
 options = Options()
+options.add_argument("--headless=new")
 service = Service(executable_path=setup_geckodriver())
 driver = webdriver.Firefox(options=options, service=service)
 
@@ -122,6 +123,7 @@ def fetch_all_post_ids(course_id):
     final = []
     final.extend(fetch_post_urls(html, course_id))
     for subcat in fetch_subcategory_urls(html, course_id):
+        print(f"looking for posts in {subcat}...")
         subcat_html = fetch_html(subcat)
         if subcat_html is None:
             continue
