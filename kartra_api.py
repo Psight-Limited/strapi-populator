@@ -60,19 +60,19 @@ def load_cookies_from_env():
     )
 
 
+cookies = load_cookies_from_env()
+print(cookies)
+print("creating driver")
 options = Options()
-options.add_argument("--headless=new")
-options.binary_location = "/usr/bin/firefox"
-service = Service(executable_path="/usr/local/bin/geckodriver")
-driver = webdriver.Firefox(options=options, service=service)
+options.add_argument("--headless")
+driver = webdriver.Firefox(options=options)
+print("created")
 
 
 def fetch_html(url):
     driver.get(url)
-    cookies = load_cookies_from_env()
     for name, value in cookies.items():
-        cookie_dict = {"name": name, "value": value}
-        driver.add_cookie(cookie_dict)
+        driver.add_cookie({"name": name, "value": value})
     driver.get(url)
     is_404 = driver.execute_script(
         "return document.title.includes('404')"
@@ -104,6 +104,7 @@ def fetch_post_urls(html: str):
 
 def fetch_all_post_ids(course_id):
     url = f"{KARTRA_URL}/{course_id}/index"
+    print("getting index..")
     html = fetch_html(url)
     assert isinstance(html, str)
     final = []
