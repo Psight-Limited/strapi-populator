@@ -55,10 +55,8 @@ class KartraClient:
         return response["account_tags"]
 
 
-cookies = json.loads(os.getenv("REQUEST_COOKIES", "{}"))
-
-
 print("creating driver")
+cookies = json.loads(os.getenv("REQUEST_COOKIES", "{}"))
 options = Options()
 options.add_argument("--headless")
 options.add_argument("--no-sandbox")
