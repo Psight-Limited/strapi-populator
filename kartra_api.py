@@ -1,8 +1,6 @@
 import json
 import os
 import re
-import subprocess
-import tarfile
 from typing import Any, Optional
 
 import aiohttp
@@ -11,7 +9,6 @@ from bs4 import BeautifulSoup, Tag
 from pydantic import BaseModel, validator
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
-from selenium.webdriver.firefox.service import Service
 
 KARTRA_URL = "https://csjoseph.kartra.com/portal"
 
@@ -62,23 +59,9 @@ def load_cookies_from_env():
     )
 
 
-def setup_geckodriver(version="0.34.0", platform="linux64"):
-    geckodriver_filename = "geckodriver"
-    geckodriver_tar = f"geckodriver-v{version}-{platform}.tar.gz"
-    if not os.path.isfile(geckodriver_filename):
-        url = f"https://github.com/mozilla/geckodriver/releases/download/v{version}/{geckodriver_tar}"
-        subprocess.run(["wget", url])
-        with tarfile.open(geckodriver_tar, "r:gz") as tar:
-            tar.extractall()
-        os.chmod(geckodriver_filename, 0o755)
-        os.remove(geckodriver_tar)
-    return os.path.join(os.getcwd(), geckodriver_filename)
-
-
 options = Options()
 options.add_argument("--headless=new")
-service = Service(executable_path=setup_geckodriver())
-driver = webdriver.Firefox(options=options, service=service)
+driver = webdriver.Firefox(options=options)
 
 
 def fetch_html(url):
@@ -109,7 +92,7 @@ def has_data_post_id_but_not_empty(tag):
     return tag.has_attr("data-post_id") and tag["data-post_id"].strip() != ""
 
 
-def fetch_post_urls(html: str, course_id):
+def fetch_post_urls(html: str):
     soup = BeautifulSoup(html, "html.parser")
     elements_with_post_id = soup.find_all(has_data_post_id_but_not_empty)
     post_ids = [int(element["data-post_id"]) for element in elements_with_post_id]
@@ -121,13 +104,13 @@ def fetch_all_post_ids(course_id):
     html = fetch_html(url)
     assert isinstance(html, str)
     final = []
-    final.extend(fetch_post_urls(html, course_id))
+    final.extend(fetch_post_urls(html))
     for subcat in fetch_subcategory_urls(html, course_id):
         print(f"looking for posts in {subcat}...")
         subcat_html = fetch_html(subcat)
         if subcat_html is None:
             continue
-        final.extend(fetch_post_urls(subcat_html, course_id))
+        final.extend(fetch_post_urls(subcat_html))
     final = list(set(final))
     return final
 
