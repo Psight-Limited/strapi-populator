@@ -9,6 +9,8 @@ from bs4 import BeautifulSoup, Tag
 from pydantic import BaseModel, validator
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.firefox.service import Service
+from webdriver_manager.firefox import GeckoDriverManager
 
 KARTRA_URL = "https://csjoseph.kartra.com/portal"
 
@@ -64,12 +66,20 @@ print(cookies)
 print("creating driver")
 options = Options()
 options.add_argument("--headless")
+options.add_argument("--headless=new")
 options.add_argument("--no-sandbox")
+options.add_argument("--disable-dev-shm-usage")
 options.add_argument("start-maximized")
 options.add_argument("disable-infobars")
 options.add_argument("--disable-extensions")
-driver = webdriver.Firefox(options=options)
+driver = webdriver.Firefox(
+    options=options,
+    service=Service(GeckoDriverManager().install()),
+)
 print("created")
+
+
+options.add_argument("--headless=new")
 
 
 def fetch_html(url):

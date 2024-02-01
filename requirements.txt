@@ -7,4 +7,5 @@ python-dotenv==1.0.1
 PyVimeo==1.1.0
 Requests==2.31.0
 selenium==4.17.2
+webdriver_manager==4.0.1
 tqdm==4.66.1
