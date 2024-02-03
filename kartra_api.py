@@ -1,12 +1,11 @@
 import json
 import os
-import re
-from typing import Any, Optional
+from typing import Optional
 
 import aiohttp
 from aiolimiter import AsyncLimiter
 from bs4 import BeautifulSoup, Tag
-from pydantic import BaseModel, validator
+from pydantic import BaseModel
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -67,12 +66,11 @@ driver = webdriver.Chrome(
     service=Service(ChromeDriverManager().install()),
 )
 print("created")
-
-
 options.add_argument("--headless=new")
 
 
 def fetch_html(url):
+    print(f"getting {url}")
     driver.get(url)
     for name, value in cookies.items():
         driver.add_cookie({"name": name, "value": value})
@@ -86,44 +84,8 @@ def fetch_html(url):
     return driver.page_source
 
 
-def fetch_subcategory_urls(html: str, course_id):
-    matches = re.findall(
-        re.compile(rf"{KARTRA_URL}/{course_id}/subcategory/\d+"),
-        html,
-    )
-    return list(set(matches))
-
-
-def has_data_post_id_but_not_empty(tag):
-    return tag.has_attr("data-post_id") and tag["data-post_id"].strip() != ""
-
-
-def fetch_post_urls(html: str):
-    soup = BeautifulSoup(html, "html.parser")
-    elements_with_post_id = soup.find_all(has_data_post_id_but_not_empty)
-    post_ids = [int(element["data-post_id"]) for element in elements_with_post_id]
-    return post_ids
-
-
-def fetch_all_post_ids(course_id):
-    url = f"{KARTRA_URL}/{course_id}/index"
-    print("getting index..")
-    html = fetch_html(url)
-    assert isinstance(html, str)
-    final = []
-    final.extend(fetch_post_urls(html))
-    for subcat in fetch_subcategory_urls(html, course_id):
-        print(f"looking for posts in {subcat}...")
-        subcat_html = fetch_html(subcat)
-        if subcat_html is None:
-            continue
-        final.extend(fetch_post_urls(subcat_html))
-    final = list(set(final))
-    return final
-
-
 class SoupMonad:
-    def __init__(self, value):
+    def __init__(self, value: Tag):
         self.value = value
 
     def find(self, *args, **kwargs):
@@ -131,74 +93,186 @@ class SoupMonad:
             self.value = self.value.find(*args, **kwargs)
         return self
 
+    def find_all(self, *args, **kwargs):
+        if isinstance(self.value, Tag):
+            self.value = self.value.find_all(*args, **kwargs)
+        return self
+
+    def contents(self):
+        if isinstance(self.value, Tag):
+            self.value = self.value.contents
+        return self
+
+    def get(self, *args, **kwargs):
+        if isinstance(self.value, Tag):
+            self.value = self.value.get(*args, **kwargs)
+        return self
+
     def get_text(self, *args, **kwargs):
         if isinstance(self.value, Tag):
-            return self.value.get_text(*args, **kwargs)
+            self.value = self.value.get_text(*args, **kwargs).strip()
+        return self
+
+    def unwrap(self):
+        assert self.value is not None
+        return self.value
+
+
+class KartraCourse(BaseModel):
+    id: str
+
+    @property
+    def url(self) -> str:
+        return f"{KARTRA_URL}/{self.id}"
+
+
+class KartraCategory(BaseModel):
+    name: str
+    course: KartraCourse
+
+
+class KartraSubcategory(BaseModel):
+    id: int
+    name: str
+    course: KartraCourse
+    category: KartraCategory
+
+    @property
+    def url(self) -> str:
+        return f"{self.course.url}/subcategory/{self.id}"
 
 
 class KartraPost(BaseModel):
     id: int
-    post_name: Optional[str]
-    subcategory_name: Optional[str]
-    category_name: Optional[str]
-    body: Optional[Tag]
-
-    class Config:
-        arbitrary_types_allowed = True
-
-    @validator("body", pre=True, allow_reuse=True)
-    def validate_body(cls, v: Any):
-        if not isinstance(v, Tag):
-            raise ValueError("body must be a BeautifulSoup Tag object")
-        return v
+    name: str
+    course: KartraCourse
+    category: KartraCategory
+    subcategory: KartraSubcategory
+    vimeo_id: Optional[str] = None
 
     @property
-    def video_id(self):
-        if self.body is None:
-            return
-        vimeo_div = self.body.find("div", {"data-video_source": "vimeo"})
-        if not isinstance(vimeo_div, Tag):
-            return None
-        res = vimeo_div.get("data-video_source_id")
-        assert isinstance(res, str)
-        return res
+    def url(self) -> str:
+        return f"{self.course.url}/post/{self.id}"
 
-    @classmethod
-    async def fetch_post_info(cls, id, course_id):
-        url = f"{KARTRA_URL}/{course_id}/post/{id}"
-        html = fetch_html(url)
-
-        if html is None:
-            return None
+    def fetch(self):
+        if hasattr(self, "_fetched"):
+            return self
+        self._fetched = True
+        html = fetch_html(self.url)
+        assert html is not None
         soup = BeautifulSoup(html, "html.parser")
-        post_name = (
-            SoupMonad(soup.find("div", class_="panel panel-kartra"))
-            .find("div", class_="panel-heading")
-            .find("h1")
-            .get_text(strip=True)
-        )
-        subcategory_name = (
-            SoupMonad(soup.find("div", class_="panel panel-blank menu_box"))
-            .find("div", class_="panel-heading")
-            .find("h2")
-            .get_text(strip=True)
-        )
-        category_name = (
-            SoupMonad(soup.find("ul", class_="nav list-unstyled"))
-            .find("li", class_="dropdown active")
-            .find("a")
-            .get_text(strip=True)
-        )
-        body = (
-            SoupMonad(soup.find("div", class_="panel panel-kartra"))
-            .find("div", class_="panel-body")
-            .value
-        )
-        assert isinstance(body, Tag) or body is None
-        return cls(
-            id=id,
-            post_name=post_name,
-            subcategory_name=subcategory_name,
-            category_name=category_name,
-            body=body,
-        )
+        body = SoupMonad(soup).find(class_="panel panel-kartra").unwrap()
+        assert isinstance(body, Tag)
+        try:
+            vimeo_id = (
+                SoupMonad(body)
+                .find("div", {"data-video_source": "vimeo"})
+                .get("data-video_source_id")
+                .unwrap()
+            )
+            if isinstance(vimeo_id, str):
+                self.vimeo_id = vimeo_id
+        except Exception:
+            pass
+        return self
+
+
+def parse_category(soup, course: KartraCourse):
+    name = SoupMonad(soup).find("a").get_text().unwrap()
+    assert isinstance(name, str)
+    category = KartraCategory(name=name, course=course)
+    subcategories = SoupMonad(soup).find("ul").contents().unwrap()
+    return sum(
+        [
+            parse_subcategory(subcategory, category, course)
+            for subcategory in subcategories
+            if isinstance(subcategory, Tag)
+        ],
+        [],
+    )
+
+
+def parse_subcategory(soup, category: KartraCategory, course: KartraCourse):
+    name = SoupMonad(soup).find(class_="dropdown_title").get_text().unwrap()
+    url = SoupMonad(soup).find("a").get("href").unwrap()
+    assert isinstance(url, str)
+    assert isinstance(name, str)
+    id = int(url.split("/")[-1])
+    if "post" in url:
+        return [
+            KartraPost(
+                id=id,
+                name=name,
+                course=course,
+                category=category,
+                subcategory=KartraSubcategory(
+                    id=-1,
+                    name=category.name,
+                    course=course,
+                    category=category,
+                ),
+            )
+        ]
+    subcategory = KartraSubcategory(
+        id=id,
+        name=name,
+        course=course,
+        category=category,
+    )
+    html = fetch_html(subcategory.url)
+    assert html is not None
+    soup = BeautifulSoup(html, "html.parser")
+    posts = (
+        SoupMonad(soup)
+        .find(class_="panel panel-blank menu_box")
+        .find(class_="panel-body")
+        .find("ul")
+        .find_all(class_="js_menu_item_navigation_element")
+        .unwrap()
+    )
+    return [
+        parse_post(post, subcategory, category, course)
+        for post in posts
+        if isinstance(post, Tag)
+    ]
+
+
+def parse_post(
+    soup,
+    subcategory: KartraSubcategory,
+    category: KartraCategory,
+    course: KartraCourse,
+):
+    id = SoupMonad(soup).get("data-item_id").unwrap()
+    name = SoupMonad(soup).find("span").get_text().unwrap()
+    assert isinstance(id, str)
+    assert isinstance(name, str)
+    id = int(id)
+    return KartraPost(
+        id=id,
+        name=name,
+        course=course,
+        category=category,
+        subcategory=subcategory,
+    )
+
+
+def fetch_all_posts(course_id):
+    course = KartraCourse(id=course_id)
+    html = fetch_html(course.url + "/index")
+    assert html is not None
+    soup = BeautifulSoup(html, "html.parser")
+    categories = (
+        SoupMonad(soup)
+        .find(class_="nav list-unstyled")
+        .find_all(class_="dropdown")
+        .unwrap()
+    )
+    return sum(
+        [
+            parse_category(category, course)
+            for category in categories
+            if isinstance(category, Tag)
+        ],
+        [],
+    )
