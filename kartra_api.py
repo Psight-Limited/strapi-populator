@@ -69,7 +69,7 @@ print("created")
 options.add_argument("--headless=new")
 
 
-def fetch_html(url):
+def fetch_html(url: str):
     print(f"getting {url}")
     driver.get(url)
     for name, value in cookies.items():
@@ -163,17 +163,16 @@ class KartraPost(BaseModel):
         soup = BeautifulSoup(html, "html.parser")
         body = SoupMonad(soup).find(class_="panel panel-kartra").unwrap()
         assert isinstance(body, Tag)
-        try:
-            vimeo_id = (
-                SoupMonad(body)
-                .find("div", {"data-video_source": "vimeo"})
-                .get("data-video_source_id")
-                .unwrap()
-            )
-            if isinstance(vimeo_id, str):
-                self.vimeo_id = vimeo_id
-        except Exception:
-            pass
+        vimeo_id = (
+            SoupMonad(body)
+            .find("div", {"data-video_source": "vimeo"})
+            .get("data-video_source_id")
+            .value
+        )
+        if vimeo_id is None:
+            return self
+        assert isinstance(vimeo_id, str)
+        self.vimeo_id = vimeo_id
         return self
 
 

@@ -32,7 +32,7 @@ class TestFullPush(unittest.IsolatedAsyncioTestCase):
             raise
         await course.delete()
         await category.delete()
-        # await subcategory.delete()
+        await subcategory.delete()
         await post.delete()
 
 

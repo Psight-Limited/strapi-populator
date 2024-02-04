@@ -8,15 +8,14 @@ from vimeo_download import download_video
 
 
 async def kartra_to_strapi(post_info: KartraPost):
+    print(post_info.id, post_info.name, "starting post")
     video_path = f"./videos/{post_info.id}.mp4"
     audio_path = f"./videos/{post_info.id}.mp3"
     thumbnail_path = f"./videos/{post_info.id}.jpg"
     folder_path = os.path.dirname(video_path)
     if os.path.exists(folder_path):
         shutil.rmtree(folder_path)
-    course, _ = await M.Course.get_or_create(
-        title=post_info.course.id,
-    )
+    course, _ = await M.Course.get_or_create(title=post_info.course.id)
     category, _ = await M.CourseCategory.get_or_create(
         name=post_info.category.name,
         course=course,
@@ -36,7 +35,9 @@ async def kartra_to_strapi(post_info: KartraPost):
     if video_id is None:
         print(post_info.id, post_info.name, "no kartra video found")
         return
-    download_video(video_id, video_path)
+    if not download_video(video_id, video_path):
+        print(post_info.id, post_info.name, "download failed!!")
+        return
     await M.PostCourseVideo(
         title=post_info.name,
         video_file=await M.Media.upload_file(video_path),
@@ -51,10 +52,10 @@ async def main():
     print("starting")
     course_ids = [
         # "joS402GfMsrK",  # EBT
-        "IvMmhsbBLqYf",  # Journeyman
-        "howtotypeyourself",
-        "7oUXLSciuEYf",  # EYF
-        "rmEnfb8YRlrK",  # UMF
+        # "IvMmhsbBLqYf",  # Journeyman
+        # "howtotypeyourself",
+        # "7oUXLSciuEYf",  # EYF
+        # "rmEnfb8YRlrK",  # UMF
         "BC7bO1RDMuZa",  # Acolyte
     ]
     for course_id in course_ids:
