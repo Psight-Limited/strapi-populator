@@ -1,4 +1,5 @@
 import os
+
 import requests
 import vimeo
 from dotenv import load_dotenv
@@ -12,6 +13,7 @@ client = vimeo.VimeoClient(
     key=os.getenv("VIMEO_CLIENT_ID"),
     secret=os.getenv("VIMEO_CLIENT_SECRET"),
 )
+
 
 def get_video_info(video_id):
     url = f"https://api.vimeo.com/videos/{video_id}"
@@ -29,6 +31,7 @@ def get_video_info(video_id):
         return None, None
     return best_file.get("link"), thumbnail_url
 
+
 def download_from_url(url, download_path):
     response = requests.get(url, stream=True)
     total_size = int(response.headers.get("content-length", 0))
@@ -44,11 +47,13 @@ def download_from_url(url, download_path):
         return False
     return True
 
+
 def download_thumbnail(thumbnail_url, download_path):
     if thumbnail_url:
         print(f"Downloading thumbnail from {thumbnail_url} to {download_path}")
         return download_from_url(thumbnail_url, download_path)
     return False
+
 
 def extract_audio(video_path, audio_path):
     print(f"Extracting audio to {audio_path}")
@@ -61,6 +66,7 @@ def extract_audio(video_path, audio_path):
         print(f"Error extracting audio: {e}")
         return False
 
+
 def download_video(video_id, download_path) -> bool:
     video_url, thumbnail_url = get_video_info(video_id)
     if video_url is None:
@@ -69,8 +75,12 @@ def download_video(video_id, download_path) -> bool:
     print(f"Downloading video from {video_url} to {download_path}")
     if download_from_url(video_url, download_path):
         print(f"Video downloaded successfully to {download_path}")
-        thumbnail_download_success = download_thumbnail(thumbnail_url, os.path.splitext(download_path)[0] + ".jpg")
-        audio_extraction_success = extract_audio(download_path, os.path.splitext(download_path)[0] + ".mp3")
+        thumbnail_download_success = download_thumbnail(
+            thumbnail_url, os.path.splitext(download_path)[0] + ".jpg"
+        )
+        audio_extraction_success = extract_audio(
+            download_path, os.path.splitext(download_path)[0] + ".mp3"
+        )
         return thumbnail_download_success and audio_extraction_success
     else:
         print("Video download failed.")
