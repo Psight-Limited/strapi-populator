@@ -51,11 +51,11 @@ async def kartra_to_strapi(post_info: KartraPost):
 async def main():
     print("starting")
     course_ids = [
-        # "joS402GfMsrK",  # EBT
-        # "IvMmhsbBLqYf",  # Journeyman
-        # "howtotypeyourself",
-        # "7oUXLSciuEYf",  # EYF
-        # "rmEnfb8YRlrK",  # UMF
+        "joS402GfMsrK",  # EBT
+        "IvMmhsbBLqYf",  # Journeyman
+        "howtotypeyourself",
+        "7oUXLSciuEYf",  # EYF
+        "rmEnfb8YRlrK",  # UMF
         "BC7bO1RDMuZa",  # Acolyte
     ]
     for course_id in course_ids:
