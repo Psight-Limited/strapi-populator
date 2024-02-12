@@ -49,7 +49,10 @@ class StrapiObject:
         async with aiohttp.ClientSession() as session:
             async with session.get(
                 url=f"{BASE_URL}{cls._uri}",
-                params={"populate": "deep"},
+                params={
+                    "populate": "deep",
+                    "pagination[limit]": "-1",
+                },
             ) as response:
                 assert response.status == 200
                 response_data = await response.json()
