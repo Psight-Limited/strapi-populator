@@ -59,6 +59,7 @@ def extract_audio(video_path, audio_path):
     print(f"Extracting audio to {audio_path}")
     try:
         clip = VideoFileClip(video_path)
+        assert clip.audio is not None
         clip.audio.write_audiofile(audio_path, fps=44100)
         print(f"Audio extracted successfully to {audio_path}")
         return True
