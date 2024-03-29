@@ -1,10 +1,96 @@
 import os
-from typing import Any, ClassVar, Dict, List, Optional
+from datetime import datetime
+from typing import Any, ClassVar, Dict, List, Optional, Union
 
 import aiohttp
 from pydantic import BaseModel, ValidationError
 
 from strapi_object import BASE_URL, StrapiObject
+
+
+class Datetime(datetime):
+    @classmethod
+    def from_datetime(cls, datetime_obj: datetime):
+        return cls.fromisoformat(datetime_obj.isoformat())
+
+    @classmethod
+    def pre_process_field(cls, obj: str):
+        if isinstance(obj, datetime):
+            return cls.from_datetime(obj)
+        if isinstance(obj, str):
+            return cls.fromisoformat(obj.replace("Z", "+00:00"))
+        raise NotImplemented
+
+    def serialize_to_post(self):
+        return self.isoformat()
+
+
+class Media(BaseModel):
+    id: int
+    name: str
+    alternativeText: Optional[str] = None
+    caption: Optional[str] = None
+    width: Optional[int] = None
+    height: Optional[int] = None
+    formats: Optional[Dict[str, Any]] = None
+    hash: str
+    ext: str
+    mime: str
+    size: float
+    url: str
+    previewUrl: Optional[str] = None
+    provider: str
+    provider_metadata: Optional[Dict[str, Any]] = None
+    createdAt: str
+    updatedAt: str
+
+    def __init__(self, **data):
+        super().__init__(**data)
+
+    def serialize_to_post(self):
+        return self.__dict__
+
+    @classmethod
+    def pre_process_field(cls, field: Any) -> Optional["Media"]:
+        if not isinstance(field, dict):
+            raise ValueError("Provided data is not a dictionary.")
+        if "data" not in field:
+            raise ValueError("'data' key not found in provided data.")
+        data = field["data"]
+        if data is None:
+            return None
+        if isinstance(data, list):
+            return cls.pre_process_field({"data": data[0]})
+        if not isinstance(data, dict):
+            raise ValueError("The 'data' field must be a dictionary.")
+        if "id" not in data or "attributes" not in data:
+            raise ValueError(
+                "The 'data' dictionary must contain 'id' and 'attributes' keys."
+            )
+        media_data = {"id": data["id"], **data["attributes"]}
+        try:
+            return cls(**media_data)
+        except ValidationError as e:
+            raise ValueError(f"Invalid media data: {e.errors()}")
+
+    @classmethod
+    async def upload_file(cls, file_path: str):
+        if not os.path.isfile(file_path):
+            return None
+        async with aiohttp.ClientSession(
+            timeout=aiohttp.ClientTimeout(60 * 60),
+        ) as session:
+            with open(file_path, "rb") as f:
+                async with session.post(
+                    url=f"{BASE_URL}/api/upload",
+                    data={"files": f},
+                ) as response:
+                    if response.status != 200:
+                        raise Exception(
+                            f"{response.status} - {await response.text()}",
+                        )
+                    response_data = (await response.json())[0]
+                    return cls(**response_data)
 
 
 class Author(StrapiObject, BaseModel):
@@ -14,6 +100,23 @@ class Author(StrapiObject, BaseModel):
 
     def __init__(self, **data):
         super().__init__(**data)
+
+
+class CoachingReplay(StrapiObject, BaseModel):
+    id: int
+    name: str
+    coach: Optional[int] = None
+    recording_date: Optional[Datetime] = None
+    videofile: Optional[Media] = None
+    type: Optional[str] = None
+    octagram: Optional[str] = None
+    _uri: ClassVar[str] = "/api/coaching-replays"
+
+    def __init__(self, **data):
+        super().__init__(**data)
+
+    class Config:
+        arbitrary_types_allowed = True
 
 
 class Course(StrapiObject, BaseModel):
@@ -58,67 +161,6 @@ class LiveTestYourself(StrapiObject, BaseModel):
 
     def __init__(self, **data):
         super().__init__(**data)
-
-
-class Media(BaseModel):
-    id: int
-    name: str
-    alternativeText: Optional[str] = None
-    caption: Optional[str] = None
-    width: Optional[int] = None
-    height: Optional[int] = None
-    formats: Optional[Dict[str, Any]] = None
-    hash: str
-    ext: str
-    mime: str
-    size: float
-    url: str
-    previewUrl: Optional[str] = None
-    provider: str
-    provider_metadata: Optional[Dict[str, Any]] = None
-    createdAt: str
-    updatedAt: str
-
-    def __init__(self, **data):
-        super().__init__(**data)
-
-    def serialize_to_post(self):
-        return self.__dict__
-
-    @classmethod
-    def pre_process_field(cls, field: Any) -> "Media":
-        if not isinstance(field, dict):
-            raise ValueError("Provided data is not a dictionary.")
-        if "data" not in field:
-            raise ValueError("'data' key not found in provided data.")
-        data = field["data"]
-        if not isinstance(data, dict):
-            raise ValueError("The 'data' field must be a dictionary.")
-        if "id" not in data or "attributes" not in data:
-            raise ValueError(
-                "The 'data' dictionary must contain 'id' and 'attributes' keys."
-            )
-        media_data = {"id": data["id"], **data["attributes"]}
-        try:
-            return cls(**media_data)
-        except ValidationError as e:
-            raise ValueError(f"Invalid media data: {e.errors()}")
-
-    @classmethod
-    async def upload_file(cls, file_path: str):
-        if not os.path.isfile(file_path):
-            return None
-        async with aiohttp.ClientSession(
-            timeout=aiohttp.ClientTimeout(60 * 60),
-        ) as session:
-            with open(file_path, "rb") as f:
-                async with session.post(
-                    url=f"{BASE_URL}/api/upload",
-                    data={"files": f},
-                ) as response:
-                    assert response.status == 200
-                    response_data = (await response.json())[0]
-                    return cls(**response_data)
 
 
 class PostBlog(StrapiObject, BaseModel):
