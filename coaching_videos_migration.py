@@ -1,7 +1,7 @@
 import asyncio
 import os
 import re
-from datetime import datetime, time
+from datetime import datetime
 
 import pytz
 from dateutil.parser import ParserError, parse
@@ -12,7 +12,8 @@ from vimeo_download import get_videos_from_folder
 
 
 def get_unique_filename(file_name):
-    counter = 0 base, extension = os.path.splitext(file_name)
+    counter = 0
+    base, extension = os.path.splitext(file_name)
     while True:
         if not os.path.exists(file_name):
             return file_name
@@ -65,10 +66,10 @@ def get_videos(folder_id: int):
 
 async def migrate_videos():
     run = False
+    run = True
     # folder_id = 6005005 # Chase
-    folder_id = 6005007 # Jay
-    videos = get_videos(folder_id)
-    for video in videos:
+    folder_id = 6005007  # Jay
+    for video in get_videos(folder_id):
         if not run:
             print(video.name)
             if video.name == "":
@@ -79,7 +80,7 @@ async def migrate_videos():
         await M.CoachingReplay(
             name=os.path.splitext(os.path.split(video.file_path)[1])[0],
             coach=7,
-            recording_date=datetime.utcnow(),
+            recording_date=None,
             videofile=await M.Media.upload_file(video.file_path),
         ).post()
         print("done uploading\n\n")
@@ -160,8 +161,6 @@ def extract_name(name_str):
 
 async def parse_titles():
     for video in await M.CoachingReplay.all():
-        if video.coach != 7:
-            continue
         name, type, octagram, recording_date = extract_name(video.name)
         print()
         print(video.name)
