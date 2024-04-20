@@ -1,10 +1,8 @@
 import os
 import urllib.parse
-from typing import Any, Optional, Type, Union, get_args, get_origin, get_type_hints
+from typing import Any, Type, Union, get_args, get_origin, get_type_hints
 
 import aiohttp
-
-import strapi_models
 
 BASE_URL = os.getenv("STRAPI_URL", "http://localhost:1337")
 
@@ -53,15 +51,19 @@ class StrapiObject:
 
     @classmethod
     async def all(cls):
+        url = f"{BASE_URL}{cls._uri}"
         async with aiohttp.ClientSession() as session:
             async with session.get(
-                url=f"{BASE_URL}{cls._uri}",
+                url=url,
                 params={
                     "populate": "deep",
                     "pagination[limit]": "-1",
                 },
             ) as response:
-                assert response.status == 200
+                if response.status != 200:
+                    raise Exception(
+                        f"{response.status} - {await response.text()}",
+                    )
                 response_data = await response.json()
                 data = response_data.get("data")
                 return [cls(**item) for item in data]

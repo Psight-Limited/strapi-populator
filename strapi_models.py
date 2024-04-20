@@ -1,11 +1,11 @@
 import os
 from datetime import datetime
-from typing import Any, ClassVar, Dict, List, Optional, Union
+from typing import Any, ClassVar, Dict, List, Optional
 
 import aiohttp
 from pydantic import BaseModel, ValidationError
 
-from strapi_object import BASE_URL, StrapiObject
+import strapi_object
 
 
 class Datetime(datetime):
@@ -14,7 +14,7 @@ class Datetime(datetime):
         return cls.fromisoformat(datetime_obj.isoformat())
 
     @classmethod
-    def pre_process_field(cls, obj: str):
+    def pre_process_field(cls, obj):
         if isinstance(obj, datetime):
             return cls.from_datetime(obj)
         if isinstance(obj, str):
@@ -82,7 +82,7 @@ class Media(BaseModel):
         ) as session:
             with open(file_path, "rb") as f:
                 async with session.post(
-                    url=f"{BASE_URL}/api/upload",
+                    url=f"{strapi_object.BASE_URL}/api/upload",
                     data={"files": f},
                 ) as response:
                     if response.status != 200:
@@ -93,7 +93,7 @@ class Media(BaseModel):
                     return cls(**response_data)
 
 
-class Author(StrapiObject, BaseModel):
+class Author(strapi_object.StrapiObject, BaseModel):
     id: int
     name: str
     _uri: ClassVar[str] = "/api/authors"
@@ -102,7 +102,7 @@ class Author(StrapiObject, BaseModel):
         super().__init__(**data)
 
 
-class CoachingReplay(StrapiObject, BaseModel):
+class CoachingReplay(strapi_object.StrapiObject, BaseModel):
     id: int
     name: str
     coach: Optional[int] = None
@@ -119,7 +119,7 @@ class CoachingReplay(StrapiObject, BaseModel):
         arbitrary_types_allowed = True
 
 
-class Course(StrapiObject, BaseModel):
+class Course(strapi_object.StrapiObject, BaseModel):
     id: int
     title: str
     course_categories: Optional[List[int]] = None
@@ -129,7 +129,7 @@ class Course(StrapiObject, BaseModel):
         super().__init__(**data)
 
 
-class CourseCategory(StrapiObject, BaseModel):
+class CourseCategory(strapi_object.StrapiObject, BaseModel):
     id: int
     name: str
     course: Optional[int] = None
@@ -139,7 +139,7 @@ class CourseCategory(StrapiObject, BaseModel):
         super().__init__(**data)
 
 
-class CourseSubcategory(StrapiObject, BaseModel):
+class CourseSubcategory(strapi_object.StrapiObject, BaseModel):
     id: int
     name: str
     course_category: Optional[int] = None
@@ -154,7 +154,7 @@ class CourseSubcategory(StrapiObject, BaseModel):
         return "filters[course_subcategory][id][$eq]", self.id
 
 
-class LiveTestYourself(StrapiObject, BaseModel):
+class LiveTestYourself(strapi_object.StrapiObject, BaseModel):
     id: int
     prod_test_yourself: Optional[int] = None
     staging_test_yourself: Optional[int] = None
@@ -163,7 +163,7 @@ class LiveTestYourself(StrapiObject, BaseModel):
         super().__init__(**data)
 
 
-class PostBlog(StrapiObject, BaseModel):
+class PostBlog(strapi_object.StrapiObject, BaseModel):
     id: int
     title: str
     blog_text: str
@@ -174,7 +174,7 @@ class PostBlog(StrapiObject, BaseModel):
         super().__init__(**data)
 
 
-class PostCourseVideo(StrapiObject, BaseModel):
+class PostCourseVideo(strapi_object.StrapiObject, BaseModel):
     id: Optional[int]
     title: str
     author: Optional[int] = None
@@ -185,13 +185,14 @@ class PostCourseVideo(StrapiObject, BaseModel):
     audio_file: Optional[Media] = None
     thumbnail: Optional[Media] = None
     transcript: Optional[str] = None
+    first_frame: Optional[Media] = None
     _uri: ClassVar[str] = "/api/post-course-videos"
 
     def __init__(self, **data):
         super().__init__(**data)
 
 
-class PostYoutubeVideo(StrapiObject, BaseModel):
+class PostYoutubeVideo(strapi_object.StrapiObject, BaseModel):
     id: int
     title: str
     author: Optional[int] = None
@@ -212,7 +213,7 @@ class PostYoutubeVideo(StrapiObject, BaseModel):
         super().__init__(**data)
 
 
-class Season(StrapiObject, BaseModel):
+class Season(strapi_object.StrapiObject, BaseModel):
     id: int
     display: str
     season_number: int
@@ -224,7 +225,7 @@ class Season(StrapiObject, BaseModel):
         super().__init__(**data)
 
 
-class TestYourself(StrapiObject, BaseModel):
+class TestYourself(strapi_object.StrapiObject, BaseModel):
     id: int
     internal_alias: str
     questions: Optional[str] = None
@@ -233,7 +234,7 @@ class TestYourself(StrapiObject, BaseModel):
         super().__init__(**data)
 
 
-class TestYourselfQuestion(StrapiObject, BaseModel):
+class TestYourselfQuestion(strapi_object.StrapiObject, BaseModel):
     id: int
     choices: Optional[List[int]] = None
     name: str
@@ -244,7 +245,7 @@ class TestYourselfQuestion(StrapiObject, BaseModel):
         super().__init__(**data)
 
 
-class Vector(StrapiObject, BaseModel):
+class Vector(strapi_object.StrapiObject, BaseModel):
     id: int
     name: str
     display: Optional[str] = None
@@ -255,7 +256,7 @@ class Vector(StrapiObject, BaseModel):
         super().__init__(**data)
 
 
-class YoutubeChannel(StrapiObject, BaseModel):
+class YoutubeChannel(strapi_object.StrapiObject, BaseModel):
     id: int
     name: str
     post_youtube_videos: Optional[List[int]] = None
