@@ -1,0 +1,66 @@
+<!-- {0} -->
+<meta charset="UTF-8" />
+<title>API Data Fetch with Loading Spinner</title>
+<style>
+  .spinner {
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border-left-color: #09f;
+    animation: spin 1s infinite linear;
+    margin: -18px 0 0 -18px;
+  }
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+  .center {
+    display: flex;
+    justify-content: center;
+    margin: 1rem;
+  }
+  #apiContent {
+    min-height: 50px;
+  }
+</style>
+<div class="center">
+  <div class="spinner" id="spinner"></div>
+</div>
+<div id="apiContent"></div>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const apiUrl =
+      "https://kartra-template-generator-4g4h8.ondigitalocean.app/pages/{1}/";
+    function fetchData() {
+      document.getElementById("spinner").style.display = "block";
+      fetch(apiUrl)
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(
+              "Network response was not ok: " + response.statusText,
+            );
+          }
+          return response.text();
+        })
+        .then((html) => {
+          displayHTML(html);
+          document.getElementById("spinner").style.display = "none";
+        })
+        .catch((error) => {
+          console.error("There was a problem with the fetch operation:", error);
+          document.getElementById("apiContent").innerHTML =
+            "Failed to load data";
+          document.getElementById("spinner").style.display = "none";
+        });
+    }
+    function displayHTML(html) {
+      document.getElementById("apiContent").innerHTML = html;
+    }
+    fetchData();
+  });
+</script>
