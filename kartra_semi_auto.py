@@ -119,12 +119,13 @@ async def monitor_changes():
             last_url = get_current_title()
             os.system("clear")
             try:
-                result = await run()
-                print(f"{result}\n\n")
-                pyperclip.copy(result)
+                res = await run()
+                print(res)
+                pyperclip.copy(res)
             except Exception:
-                print(f"No result\n\n")
                 traceback.print_exc()
+                print(f"\n\nNo result")
+                pyperclip.copy("No result")
 
 
 async def main():
