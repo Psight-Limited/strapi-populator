@@ -26,20 +26,18 @@ def extract_first_frame(video_url, video_id):
 
 
 async def process_video(video, executor):
-    async with lock:
+    loop = asyncio.get_running_loop()
+    print(video.id)
+    frame_path = await loop.run_in_executor(
+        executor, extract_first_frame, video.video_file.url, video.id
+    )
 
-        loop = asyncio.get_running_loop()
-        print(video.id)
-        frame_path = await loop.run_in_executor(
-            executor, extract_first_frame, video.video_file.url, video.id
-        )
-
-        thumbnail = await M.Media.upload_file(frame_path)
-        updates = {"first_frame": thumbnail}
-        print("UPDATE", video.id)
-        await M.PostCourseVideo(**{**video.__dict__, **updates}).put()
-        os.remove(frame_path)
-        print(f"Processed video {video.id}")
+    thumbnail = await M.Media.upload_file(frame_path)
+    updates = {"first_frame": thumbnail}
+    print("UPDATE", video.id)
+    await M.PostCourseVideo(**{**video.__dict__, **updates}).put()
+    os.remove(frame_path)
+    print(f"Processed video {video.id}")
 
 
 async def main():
