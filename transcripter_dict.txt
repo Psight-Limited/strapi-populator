@@ -1,0 +1,40 @@
+\bESTJ\(ay\)\?\(s\)\?\b/ESTJ\2/gi
+\bESTP\(ea\)\?\(s\)\?\b/ESTP\2/gi
+\bENTJ\(ay\)\?\(s\)\?\b/ENTJ\2/gi
+\bENFJ\(ay\)\?\(s\)\?\b/ENFJ\2/gi
+\bESFJ\(ay\)\?\(s\)\?\b/ESFJ\2/gi
+\bESFP\(ea\)\?\(s\)\?\b/ESFP\2/gi
+\bENTP\(ea\)\?\(s\)\?\b/ENTP\2/gi
+\bENFP\(ea\)\?\(s\)\?\b/ENFP\2/gi
+\bISTJ\(ay\)\?\(s\)\?\b/ISTJ\2/gi
+\bISTP\(ea\)\?\(s\)\?\b/ISTP\2/gi
+\bINTJ\(ay\)\?\(s\)\?\b/INTJ\2/gi
+\bINFJ\(ay\)\?\(s\)\?\b/INFJ\2/gi
+\bISFJ\(ay\)\?\(s\)\?\b/ISFJ\2/gi
+\bISFP\(ea\)\?\(s\)\?\b/ISFP\2/gi
+\bINTP\(ea\)\?\(s\)\?\b/INTP\2/gi
+\bINFP\(ea\)\?\(s\)\?\b/INFP\2/gi
+\bSDSF\b/SDSF/gi
+\bSDUF\b/SDUF/gi
+\bUDSF\b/UDSF/gi
+\bUDUF\b/UDUF/gi
+\beagle hacker/EgoHacker/gi
+\bUcha\b/UDJA/gi
+\beo\s*hack/EgoHack/gi
+\beco\s*hack/EgoHack/gi
+\bEgo\s*Hacking\s*by\s*Text\b/EgoHacking by Text/gi
+\bEgo\s*Hacking\s*your\s*Fear\b/EgoHacking your Fear/gi
+\bEgo\s*Hack/EgoHack/gi
+\betcetera\b/etc./gi
+\bTi\b/Ti/gi
+\bFi\b/Fi/gi
+\bSi\b/Si/gi
+\bNi\b/Ni/gi
+\bTe\b/Te/gi
+\bFe\b/Fe/gi
+\bSe\b/Se/gi
+\bNe\b/Ne/gi
+\brailgun\b/Railgun/gi
+\bcovid contract/covert contract/gi
+\bcover contract/covert contract/gi
+\bUDF\b/UDUF/gi
