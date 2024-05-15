@@ -23,9 +23,9 @@ async def main():
     for video in all_videos:
         print(video.id)
         audio_path = extract_audio(video.video_file.url)
-        audio = await M.Media.upload_file(audio_path)
-        assert audio is not None
-        updates = {"audio_file": audio}
+        file = await M.Media.upload_file(audio_path)
+        assert file is not None
+        updates = {"audio_file": file}
         await M.PostCourseVideo(**{**video.__dict__, **updates}).put()
         os.remove(audio_path)
 
