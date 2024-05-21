@@ -43,10 +43,8 @@ async def process_video(video, executor):
 async def main():
     print("Start processing videos")
     all_videos = await M.PostCourseVideo.all()
-    all_videos = [
-        i for i in all_videos if i.first_frame and i.first_frame.name == "temp.jpg"
-    ]
-    print("ALL VIDEOS DONE")
+    all_videos = [i for i in all_videos if i.video_file and not i.first_frame]
+    print("Fetched ALL VIDEOS DONE")
 
     with ThreadPoolExecutor() as executor:
         tasks = [process_video(video, executor) for video in all_videos]

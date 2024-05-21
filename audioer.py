@@ -9,6 +9,7 @@ def extract_audio(video_url):
     output_path = "./temp.mp3"
     ffmpeg_command = [
         "ffmpeg",
+        "-y",
         "-i",
         video_url,
         output_path,

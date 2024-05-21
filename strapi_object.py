@@ -58,6 +58,7 @@ class StrapiObject:
                 params={
                     "populate": "deep",
                     "pagination[limit]": "-1",
+                    "publicationState": "preview",
                 },
             ) as response:
                 if response.status != 200:
