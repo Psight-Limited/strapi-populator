@@ -12,3 +12,4 @@ webdriver_manager==4.0.1
 beautifulsoup4==4.12.3
 pyperclip
 cryptography
+aiohttp
