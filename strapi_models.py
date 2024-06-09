@@ -263,3 +263,13 @@ class YoutubeChannel(strapi_object.StrapiObject, BaseModel):
 
     def __init__(self, **data):
         super().__init__(**data)
+
+class FamousPeople(strapi_object.StrapiObject, BaseModel):
+    id: int
+    name: str
+    octagram: Optional[str] = None
+    picture: Optional[Media] = None
+    _uri: ClassVar[str] = "/api/famous-people"
+
+    def __init__(self, **data):
+        super().__init__(**data)

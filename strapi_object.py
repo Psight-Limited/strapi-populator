@@ -119,7 +119,7 @@ class StrapiObject:
                 url=f"{BASE_URL}{self._uri}",
                 json=data,
             ) as response:
-                assert response.status == 200
+                assert response.status == 200, await response.text()
                 data = await response.json()
                 data = data.get("data")
                 res = await self.get(id=data["id"])
