@@ -1,17 +1,6 @@
 import os
-from dataclasses import dataclass, field, fields
-from typing import (
-    Any,
-    Dict,
-    List,
-    Optional,
-    Type,
-    TypeVar,
-    Union,
-    get_args,
-    get_origin,
-    get_type_hints,
-)
+from dataclasses import dataclass, fields
+from typing import Any, Optional, Type, TypeVar, Union, get_args, get_type_hints
 
 import aiohttp
 
@@ -67,10 +56,10 @@ class StrapiMeta(type):
 
 @dataclass(init=False, repr=False)
 class StrapiObject(metaclass=StrapiMeta):
-    id: int
-    createdAt: str
-    updatedAt: str
-    publishedAt: str
+    id: Optional[int] = None
+    createdAt: Optional[str] = None
+    updatedAt: Optional[str] = None
+    publishedAt: Optional[str] = None
 
     def __init__(self, **data):
         for key, value in data.items():
@@ -107,7 +96,7 @@ class StrapiObject(metaclass=StrapiMeta):
                 url=url,
                 params={
                     "populate": "deep",
-                    "pagination[limit]": "1",
+                    "pagination[limit]": "-1",
                     "publicationState": "preview",
                 },
             ) as response:
@@ -161,7 +150,7 @@ class StrapiObject(metaclass=StrapiMeta):
 
     async def post(self):
         data = self.__dict__
-        data.pop("id")
+        data.pop("id", None)  # Remove id if it exists
         data = {k: serialize_to_post(v) for k, v in data.items()}
         data = {"data": data}
         async with aiohttp.ClientSession() as session:
@@ -170,11 +159,16 @@ class StrapiObject(metaclass=StrapiMeta):
                 json=data,
             ) as response:
                 assert response.status == 200, await response.text()
-                data = await response.json()
-                data = data.get("data")
-                res = await self.get(id=data["id"])
-                assert res is not None
-                self.__dict__.update(res.__dict__)
+                response_data = await response.json()
+                new_data = response_data.get("data")
+                if new_data:
+                    self.id = new_data["id"]  # Update the id of the object
+                    attributes = new_data.get("attributes", {})
+                    for key, value in attributes.items():
+                        expected_type = get_type_hints(self.__class__).get(key)
+                        if expected_type:
+                            value = pre_process_field(value, expected_type)
+                        setattr(self, key, value)
                 return self
 
     async def delete(self):

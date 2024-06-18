@@ -6,6 +6,7 @@ from typing import Any, ClassVar, Dict, List, Optional
 import aiohttp
 
 import strapi_object
+from famous_people_populator import type_to_typeorder
 from strapi_object import StrapiObject
 
 
@@ -232,3 +233,12 @@ class FamousPeople(StrapiObject):
     octagram: Optional[str] = None
     picture: Optional[Media] = None
     _uri: ClassVar[str] = "/api/famous-people"
+
+    @classmethod
+    def from_csv(cls, row: list) -> "FamousPeople":
+        return cls(
+            name=row[0],
+            typecode=row[1],
+            typecode_order=type_to_typeorder(row[1]),
+            octagram=row[2] if len(row) > 2 else None,
+        )
