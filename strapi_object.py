@@ -1,4 +1,5 @@
 import os
+import urllib
 from dataclasses import dataclass, fields
 from typing import Any, Optional, Type, TypeVar, Union, get_args, get_type_hints
 
@@ -41,6 +42,11 @@ def pre_process_field(field: Any, expected_type: Type) -> Any:
 
 
 def serialize_to_post(obj):
+    if isinstance(obj, dict):
+        return {k: serialize_to_post(v) for k, v in obj.items()}
+    elif isinstance(obj, (list, tuple, set)):
+        return type(obj)(serialize_to_post(v) for v in obj)
+
     if hasattr(obj, "serialize_to_post"):
         return obj.serialize_to_post()
     return obj
@@ -187,7 +193,7 @@ class StrapiObject(metaclass=StrapiMeta):
                 json=data,
             ) as response:
                 if response.status != 200:
-                    raise Exception(f"Failed to update: {response.status}")
+                    raise Exception(f"Failed to update: {await response.text()}")
                 response_data = await response.json()
                 updated_data = response_data.get("data")
                 if "attributes" in updated_data:
@@ -199,5 +205,5 @@ class StrapiObject(metaclass=StrapiMeta):
                     self.__dict__[key] = value
                 return self
 
-    def serialize_to_post(self):
-        return self.__dict__
+    def serialize_to_post(self) -> Any:
+        return self.id

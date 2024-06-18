@@ -52,8 +52,6 @@ class Media:
 
     @classmethod
     def pre_process_field(cls, data: Any) -> Optional["Media"]:
-        if not isinstance(data, dict):
-            raise ValueError("Provided data is not a dictionary.")
         if data is None:
             return None
         if isinstance(data, list):

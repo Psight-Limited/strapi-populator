@@ -25,17 +25,16 @@ def extract_first_frame(video_url, video_id):
     return output_path
 
 
-async def process_video(video, executor):
+async def process_video(video: M.PostCourseVideo, executor):
     loop = asyncio.get_running_loop()
     print(video.id)
     frame_path = await loop.run_in_executor(
         executor, extract_first_frame, video.video_file.url, video.id
     )
 
-    thumbnail = await M.Media.upload_file(frame_path)
-    updates = {"first_frame": thumbnail}
+    video.first_frame = await M.Media.upload_file(frame_path)
     print("UPDATE", video.id)
-    await M.PostCourseVideo(**{**video.__dict__, **updates}).put()
+    await video.put()
     os.remove(frame_path)
     print(f"Processed video {video.id}")
 
@@ -47,7 +46,9 @@ async def main():
     print("Fetched ALL VIDEOS DONE")
 
     with ThreadPoolExecutor() as executor:
-        tasks = [process_video(video, executor) for video in all_videos]
+        tasks = [
+            process_video(video, executor) for video in all_videos if video.id == 459
+        ]
         print("TASKS")
         await asyncio.gather(*tasks)
 
