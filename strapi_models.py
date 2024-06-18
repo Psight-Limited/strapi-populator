@@ -269,6 +269,8 @@ class FamousPeople(strapi_object.StrapiObject, BaseModel):
     name: str
     octagram: Optional[str] = None
     picture: Optional[Media] = None
+    typecode: str
+    typecode_order: int
     _uri: ClassVar[str] = "/api/famous-people"
 
     def __init__(self, **data):

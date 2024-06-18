@@ -8,6 +8,25 @@ import requests
 
 import strapi_models as M
 
+types = [
+    "ESTJ",
+    "ESTP",
+    "ENTJ",
+    "ENFJ",
+    "ESFJ",
+    "ESFP",
+    "ENTP",
+    "ENFP",
+    "ISTJ",
+    "ISTP",
+    "INTJ",
+    "INFJ",
+    "ISFJ",
+    "ISFP",
+    "INTP",
+    "INFP",
+]
+
 
 def load_file(file_path):
     with open(file_path) as f:
@@ -27,25 +46,72 @@ async def download_file_async(url, name, executor):
     return await loop.run_in_executor(executor, download_file, url, name)
 
 
-async def main():
-    famous = load_file("famous.json")
-    famous = json.loads(famous)
-
-    person = famous[0]
+async def postFamousPerson(person, semaphore):
     name = person["name"]
     picture_url = person["picture_url"]
     if picture_url:
         image_path = f"./images/{name}.jpg"
-        file = await M.Media.upload_file(image_path)
-        updates = {"picture": file}
-        await M.FamousPeople(**{**person, **updates}).post()
+        async with semaphore:
+            file = await M.Media.upload_file(image_path)
+            updates = {"picture": file}
+            await M.FamousPeople(**{**person, **updates}).post()
 
-    # for person in famous:
-    # file = await M.Media.upload_file(audio_path)
-    # assert file is not None
-    # updates = {"audio_file": file}
-    # await M.PostCourseVideo(**{**video.__dict__, **updates}).put()
-    # os.remove(audio_path)
+
+async def putTypecodeOrder(person, semaphore):
+    print(f"Updating {person.name}")
+    async with semaphore:
+        typecode = person.typecode
+        typecode_order = types.index(typecode)
+        updates = {"typecode_order": typecode_order}
+        await M.FamousPeople(**{**person.__dict__, **updates}).put()
+        print(f"Updated {person.name} with {typecode_order}")
+
+
+def generateTypeList():
+    typelist_files = [f"./Types/{type}/{type}.txt" for type in types]
+    typelist = {}
+    for file in typelist_files:
+        type = file.split("/")[-1].split(".")[0]
+        typeDict = []
+        with open(file) as f:
+            for line in f:
+                typeDict.append(line.strip())
+
+        typelist[type] = typeDict
+
+    return typelist
+
+
+async def generateMissingImages(person, typelist, semaphore):
+    name = person["name"]
+    typecode = person["typecode"]
+    typecodeList = typelist[typecode]
+    if name not in typecodeList:
+        with open("./missing.txt", "a") as f:
+            f.write(f"{name}\n")
+        return
+    typecodeIndex = typecodeList.index(name) + 1
+    image_path = f"./Types/{typecode.upper()}/{typecodeIndex}.jpg"
+    print(f"Uploading {name} from {image_path}")
+
+    async with semaphore:
+        file = await M.Media.upload_file(image_path)
+        typecode_order = types.index(typecode)
+        updates = {"picture": file, "typecode_order": typecode_order}
+        await M.FamousPeople(**{**person, **updates}).post()
+        print(f"Uploaded {name} from {image_path}")
+
+
+async def main():
+    tasks = []
+    typelist = generateTypeList()
+    semaphore = asyncio.Semaphore(20)
+
+    famous_people = json.loads(load_file("./filtered_famous.json"))
+    for person in famous_people:
+        tasks.append(generateMissingImages(person, typelist, semaphore))
+
+    await asyncio.gather(*tasks)
 
 
 if __name__ == "__main__":
