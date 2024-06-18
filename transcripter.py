@@ -58,8 +58,8 @@ async def per_video(video: M.PostCourseVideo, executor):
     )
     if transcript_on_strapi == transcript_generated:
         return
-    updates = {"transcript": transcript_generated}
-    await M.PostCourseVideo(**{**video.__dict__, **updates}).put()
+    video.transcript = transcript_generated
+    await video.put()
 
 
 async def fetch_videos():

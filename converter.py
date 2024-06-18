@@ -112,9 +112,9 @@ async def main():
             print("Video converted")
             file = await M.Media.upload_file(video_path)
             assert file is not None
+            video.video_file = file
             print("Video uploaded")
-            updates = {"video_file": file}
-            await M.PostCourseVideo(**{**video.__dict__, **updates}).put()
+            await video.put()
             os.remove(video_path)
         else:
             print(f"Skipping conversion for video {video.id}, already h264.")

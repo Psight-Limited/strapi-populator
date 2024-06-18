@@ -169,18 +169,17 @@ async def parse_titles():
         if recording_date:
             recording_date = pst.localize(recording_date)
             recording_date = M.Datetime.from_datetime(recording_date)
-        updates = {"name": name}
+        video.name = name
         if type:
-            updates["type"] = type
+            video.type = type
         if octagram:
-            updates["octagram"] = octagram
+            video.octagram = octagram
         if video.recording_date is not None and video.recording_date > pst.localize(
             datetime(2024, 3, 28)
         ):
-            updates["recording_date"] = None
+            video.recording_date = None
         if recording_date:
-            updates["recording_date"] = recording_date
-        video = M.CoachingReplay(**{**video.__dict__, **updates})
+            video.recording_date = recording_date
         print(video.recording_date)
         await video.put()
 
