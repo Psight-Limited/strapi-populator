@@ -264,6 +264,7 @@ class YoutubeChannel(strapi_object.StrapiObject, BaseModel):
     def __init__(self, **data):
         super().__init__(**data)
 
+
 class FamousPeople(strapi_object.StrapiObject, BaseModel):
     id: int
     name: str
