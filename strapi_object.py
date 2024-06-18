@@ -1,33 +1,54 @@
 import os
-import urllib.parse
-from typing import Any, Type, Union, get_args, get_origin, get_type_hints
+from dataclasses import dataclass, field, fields
+from typing import (
+    Any,
+    Dict,
+    List,
+    Optional,
+    Type,
+    TypeVar,
+    Union,
+    get_args,
+    get_origin,
+    get_type_hints,
+)
 
 import aiohttp
 
 BASE_URL = os.getenv("STRAPI_URL", "http://localhost:1337")
+T = TypeVar("T")
 
 
-def is_optional_type(hint):
-    if get_origin(hint) is Union:
-        return type(None) in get_args(hint)
-    return False
+def is_optional_type(type_hint: Type) -> bool:
+    return get_origin(type_hint) is Union and type(None) in get_args(type_hint)
+
+
+def get_origin(type_hint: Type) -> Type:
+    return getattr(type_hint, "__origin__", None)
+
+
+def unwrap_dict_with_data(obj):
+    if not isinstance(obj, dict) or "data" not in obj:
+        return obj
+    return obj["data"]
 
 
 def pre_process_field(field: Any, expected_type: Type) -> Any:
+    field = unwrap_dict_with_data(field)
+    if hasattr(expected_type, "pre_process_field"):
+        return expected_type.pre_process_field(field)
     if is_optional_type(expected_type):
         if field is None:
             return None
         return pre_process_field(field, get_args(expected_type)[0])
+    if get_origin(expected_type) is list:
+        if field is None:
+            return None
+        inner_type = get_args(expected_type)[0]
+        return [pre_process_field(item, inner_type) for item in field]
     if type(field) is expected_type:
         return field
-    if hasattr(expected_type, "pre_process_field"):
-        return expected_type.pre_process_field(field)
-    if not isinstance(field, dict) or "data" not in field:
-        return field
-    data = field["data"]
-    if isinstance(data, dict):
-        return data.get("id")
-    return None
+    return field
 
 
 def serialize_to_post(obj):
@@ -36,18 +57,47 @@ def serialize_to_post(obj):
     return obj
 
 
-class StrapiObject:
+class StrapiMeta(type):
+    def __call__(cls, *args, **kwargs):
+        if "attributes" in kwargs:
+            attributes = kwargs.pop("attributes")
+            kwargs.update(attributes)
+        return super().__call__(*args, **kwargs)
+
+
+@dataclass(init=False, repr=False)
+class StrapiObject(metaclass=StrapiMeta):
+    id: int
+    createdAt: str
+    updatedAt: str
+    publishedAt: str
+
     def __init__(self, **data):
-        id = data.get("id")
-        if "attributes" in data:
-            data = data.get("attributes", {})
-        if data:
-            data = {"id": id, **data}
         for key, value in data.items():
+            if key == "transcript":
+                continue
             expected_type = get_type_hints(self.__class__).get(key)
             if expected_type:
                 value = pre_process_field(value, expected_type)
-            self.__dict__[key] = value
+            setattr(self, key, value)
+
+    @classmethod
+    def pre_process_field(cls, obj):
+        if obj is None:
+            return None
+        return cls(**{"id": obj.get("id"), **obj.get("attributes", {})})
+
+    def __str__(self) -> str:
+        return self.__repr__()
+
+    def __repr__(self) -> str:
+        res = f"{self.__class__.__name__}("
+        for field_info in fields(self):
+            k = field_info.name
+            v = getattr(self, k)
+            res += f"\n    {k}={v.__repr__()}"
+        res += "\n)"
+        return res
 
     @classmethod
     async def all(cls):
@@ -57,7 +107,7 @@ class StrapiObject:
                 url=url,
                 params={
                     "populate": "deep",
-                    "pagination[limit]": "-1",
+                    "pagination[limit]": "1",
                     "publicationState": "preview",
                 },
             ) as response:
