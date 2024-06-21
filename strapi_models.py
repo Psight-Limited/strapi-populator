@@ -230,6 +230,7 @@ class FamousPeople(StrapiObject):
     typecode_order: int
     octagram: Optional[str] = None
     picture: Optional[Media] = None
+    picture_url: Optional[str] = None
     _uri: ClassVar[str] = "/api/famous-people"
 
     @classmethod
@@ -240,3 +241,14 @@ class FamousPeople(StrapiObject):
             typecode_order=type_to_typeorder(row[1]),
             octagram=row[2] if len(row) > 2 else None,
         )
+
+    @classmethod
+    def from_json(cls, data: dict) -> "FamousPeople":
+        return cls(
+            name=data["name"],
+            typecode=data["typecode"],
+            typecode_order=type_to_typeorder(data["typecode"]),
+            octagram=data["octagram"] if "octagram" in data else None,
+            picture_url=data["picture_url"] if  data["picture_url"] else None,
+        )
+

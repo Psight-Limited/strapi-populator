@@ -1,9 +1,11 @@
 import asyncio
 import csv
+import json
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
 
+import aiohttp
 import requests
 
 import strapi_models as M
@@ -63,6 +65,9 @@ def fetch_image_src(name: str) -> Optional[str]:
 
 
 def download_file(url: str, name: str) -> str:
+    if not url or not name:
+        print(f"URL: {url}, Name: {name}")
+        raise ValueError("URL and name must be provided")
     fp = f"./images/{name}.jpg"
     curl_command = ["curl", url, "--output", fp]
     subprocess.run(curl_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -80,39 +85,47 @@ def type_to_typeorder(typecode: str) -> int:
 
 
 async def process_person(person, existing_names, existing_people, executor, semaphore):
+    if person.name is None:
+        return
     async with semaphore:
-        print(person)
         if person.name not in existing_names:
+            print(f"Creating {person.name}")
             await person.post()
         else:
-            person = [x for x in existing_people if x.name == person.name][0]
-        print(person)
+            existing_person = [x for x in existing_people if x.name == person.name][0]
+            person.picture = existing_person.picture
+            print(f"Checking {person.name}")
         if person.picture is None:
-            picture_url = fetch_image_src(person.name)
-            print(picture_url)
-            if not picture_url:
-                return
+            print(f"{person.name} has no picture. Fetching...")
+            picture_url = person.picture_url
+            if not person.picture_url:
+                picture_url = fetch_image_src(person.name)
+                if picture_url is None:
+                    print(f"Could not find image for {person.name}")
+                    return
+            print(f"Downloading {person.name}")
             fp = await download_file_async(picture_url, person.name, executor)
-            print(fp)
+            print(f"Uploading {person.name}")
             person.picture = await M.Media.upload_file(fp)
+            print(f"Putting {person.name}")
             await person.put()
+        else:
+            print(f"{person.name} already has a picture")
 
 
 async def main():
-    executor = ThreadPoolExecutor(max_workers=10)
-    semaphore = asyncio.Semaphore(20)
+    executor = ThreadPoolExecutor(max_workers=50)
+    semaphore = asyncio.Semaphore(50)
     existing_people = await M.FamousPeople.all()
     existing_names = {person.name for person in existing_people}
-    with open("./famous_people.csv") as csvfile:
-        reader = csv.reader(csvfile)
-        famous_people = [M.FamousPeople.from_csv(row) for row in reader]
+    with open("./famous.json", "r") as file:
+        famous_people = json.load(file)
 
-    tasks = [
-        process_person(person, existing_names, existing_people, executor, semaphore)
-        for person in famous_people
-    ]
+    tasks = []
+    for person in famous_people:
+        tasks.append(process_person(person, existing_names, existing_people, executor, semaphore))
+
     await asyncio.gather(*tasks)
-
-
+    
 if __name__ == "__main__":
     asyncio.run(main())
