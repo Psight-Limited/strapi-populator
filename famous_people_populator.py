@@ -1,6 +1,7 @@
 import asyncio
 import csv
 import json
+import os
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
@@ -64,10 +65,17 @@ def fetch_image_src(name: str) -> Optional[str]:
         return None
 
 
+def ensure_folder_exists(folder_path):
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+        print(f"Folder '{folder_path}' created.")
+
+
 def download_file(url: str, name: str) -> str:
     if not url or not name:
         print(f"URL: {url}, Name: {name}")
         raise ValueError("URL and name must be provided")
+    ensure_folder_exists("./images")
     fp = f"./images/{name}.jpg"
     curl_command = ["curl", url, "--output", fp]
     subprocess.run(curl_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -113,19 +121,97 @@ async def process_person(person, existing_names, existing_people, executor, sema
             print(f"{person.name} already has a picture")
 
 
-async def main():
-    executor = ThreadPoolExecutor(max_workers=50)
+def generateTypeList():
+    typelist_files = [f"./Types/{type}/{type}.txt" for type in types]
+    typelist = {}
+    for file in typelist_files:
+        type = file.split("/")[-1].split(".")[0]
+        typeDict = []
+        with open(file) as f:
+            for line in f:
+                typeDict.append(line.strip())
+
+        typelist[type] = typeDict
+
+    return typelist
+
+
+async def generateMissingImages(
+    person, existing_names, existing_people, typelist, semaphore
+):
+    name = person.name
+    typecode = person.typecode
+    typecodeList = typelist[typecode]
+    if name not in typecodeList:
+        with open("./missing.txt", "a") as f:
+            f.write(f"{name}\n")
+        return
+    typecodeIndex = typecodeList.index(name) + 1
+    image_path = f"./Types/{typecode.upper()}/{typecodeIndex}.jpg"
+
+    async with semaphore:
+        if person.name not in existing_names:
+            file = await M.Media.upload_file(image_path)
+            person.picture = file
+            print(f"Creating {person.name}")
+            await person.post()
+        else:
+            person = [x for x in existing_people if x.name == person.name][0]
+
+        file = await M.Media.upload_file(image_path)
+        person.picture = file
+        __import__("pprint").pprint(person)
+        await person.put()
+        print(f"Uploaded {name} from {image_path}")
+
+
+async def populateFromClover():
+    tasks = []
+    typelist = generateTypeList()
     semaphore = asyncio.Semaphore(50)
     existing_people = await M.FamousPeople.all()
-    existing_names = {person.name for person in existing_people}
-    with open("./famous.json", "r") as file:
-        famous_people = json.load(file)
+    existing_names = [person.name for person in existing_people]
 
+    with open("./filtered_famous.json") as f:
+        famous_people = json.load(f)
+
+    for person in famous_people:
+        tasks.append(
+            generateMissingImages(
+                M.FamousPeople.from_json(person),
+                existing_names,
+                existing_people,
+                typelist,
+                semaphore,
+            )
+        )
+    await asyncio.gather(*tasks)
+
+
+async def populateMissingImages():
+    existing_people = await M.FamousPeople.all()
+    with open("./famous.json") as f:
+        famous_people = json.load(f)
+
+    semaphore = asyncio.Semaphore(50)
+    executor = ThreadPoolExecutor(max_workers=50)
     tasks = []
     for person in famous_people:
-        tasks.append(process_person(person, existing_names, existing_people, executor, semaphore))
-
+        tasks.append(
+            process_person(
+                M.FamousPeople.from_json(person),
+                [x.name for x in existing_people],
+                existing_people,
+                executor,
+                semaphore,
+            )
+        )
     await asyncio.gather(*tasks)
-    
+
+
+async def main():
+    await populateMissingImages()
+
+
 if __name__ == "__main__":
     asyncio.run(main())
