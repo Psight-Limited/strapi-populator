@@ -63,11 +63,11 @@ async def per_video(video: M.PostCourseVideo, executor):
 
 
 async def fetch_videos():
-    videos = await M.PostCourseVideo.all()
-    videos = [i for i in videos if i.video_file]
-    print(f"got {len(videos)} videos")
+    all_videos = await M.PostCourseVideo.all()
+    all_videos = [i for i in all_videos if i.video_file]
+    print(f"got {len(all_videos)} videos")
     with ThreadPoolExecutor() as executor:
-        await asyncio.gather(*(per_video(video, executor) for video in videos))
+        await asyncio.gather(*(per_video(video, executor) for video in all_videos))
 
 
 if __name__ == "__main__":

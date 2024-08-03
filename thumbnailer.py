@@ -45,11 +45,8 @@ async def main():
     print(f"got {len(all_videos)} videos")
     all_videos = [i for i in all_videos if i.video_file and not i.first_frame]
     print(f"{len(all_videos)} videos are missing first_frame")
-
     with ThreadPoolExecutor() as executor:
-        tasks = [
-            process_video(video, executor) for video in all_videos 
-        ]
+        tasks = [process_video(video, executor) for video in all_videos]
         print("TASKS")
         await asyncio.gather(*tasks)
 
