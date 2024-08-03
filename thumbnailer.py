@@ -42,12 +42,13 @@ async def process_video(video: M.PostCourseVideo, executor):
 async def main():
     print("Start processing videos")
     all_videos = await M.PostCourseVideo.all()
+    print(f"got {len(all_videos)} videos")
     all_videos = [i for i in all_videos if i.video_file and not i.first_frame]
-    print("Fetched ALL VIDEOS DONE")
+    print(f"{len(all_videos)} videos are missing first_frame")
 
     with ThreadPoolExecutor() as executor:
         tasks = [
-            process_video(video, executor) for video in all_videos if video.id == 459
+            process_video(video, executor) for video in all_videos 
         ]
         print("TASKS")
         await asyncio.gather(*tasks)

@@ -249,6 +249,5 @@ class FamousPeople(StrapiObject):
             typecode=data["typecode"],
             typecode_order=type_to_typeorder(data["typecode"]),
             octagram=data["octagram"] if "octagram" in data else None,
-            picture_url=data["picture_url"] if  data["picture_url"] else None,
+            picture_url=data["picture_url"] if data["picture_url"] else None,
         )
-

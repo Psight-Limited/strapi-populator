@@ -1,11 +1,14 @@
 import os
 import urllib
 from dataclasses import dataclass, fields
-from typing import Any, Optional, Type, TypeVar, Union, get_args, get_type_hints
+from typing import (Any, Optional, Type, TypeVar, Union, get_args,
+                    get_type_hints)
 
 import aiohttp
 
-BASE_URL = os.getenv("STRAPI_URL", "http://localhost:1337")
+BASE_URL = os.getenv("STRAPI_URL")
+assert BASE_URL is not None
+print(f"Using {BASE_URL=}")
 T = TypeVar("T")
 
 
@@ -100,6 +103,7 @@ class StrapiObject(metaclass=StrapiMeta):
         async with aiohttp.ClientSession() as session:
             async with session.get(
                 url=url,
+                timeout=10,
                 params={
                     "populate": "deep",
                     "pagination[limit]": "-1",
