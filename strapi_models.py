@@ -184,6 +184,7 @@ class PostYoutubeVideo(StrapiObject):
     audio_file: Optional[Media] = None
     thumbnail: Optional[Media] = None
     transcript: Optional[str] = None
+    _uri: ClassVar[str] = "/api/post-youtube-videos"
 
 
 @dataclass(init=False, repr=False)

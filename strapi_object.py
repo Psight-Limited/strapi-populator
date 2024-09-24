@@ -1,8 +1,7 @@
 import os
 import urllib
 from dataclasses import dataclass, fields
-from typing import (Any, Optional, Type, TypeVar, Union, get_args,
-                    get_type_hints)
+from typing import Any, Optional, Type, TypeVar, Union, get_args, get_type_hints
 
 import aiohttp
 
@@ -72,8 +71,6 @@ class StrapiObject(metaclass=StrapiMeta):
 
     def __init__(self, **data):
         for key, value in data.items():
-            if key == "transcript":
-                continue
             expected_type = get_type_hints(self.__class__).get(key)
             if expected_type:
                 value = pre_process_field(value, expected_type)
@@ -103,7 +100,7 @@ class StrapiObject(metaclass=StrapiMeta):
         async with aiohttp.ClientSession() as session:
             async with session.get(
                 url=url,
-                timeout=10,
+                timeout=30,
                 params={
                     "populate": "deep",
                     "pagination[limit]": "-1",
